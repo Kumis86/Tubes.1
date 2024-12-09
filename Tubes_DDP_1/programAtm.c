@@ -560,31 +560,66 @@ void pengaturanAkun(Nasabah *nasabah) {
 
     switch (pilihan) {
         case 1:
+        	clearScreen();
             printf("Nama: %s\n", nasabah->nama);
             printf("Saldo: Rp%d\n", nasabah->saldo);
             printf("No Rekening: %s\n", nasabah->no_rekening);
+	        printf("\nTekan enter untuk kembali ke menu utama...");
+	        getchar();
+	        menuUtama(nasabah);
             break;
 
-        case 2: {
-            char pinBaru[7];
-            printf("Masukkan PIN baru (maksimal 6 karakter): ");
-            fgets(pinBaru, sizeof(pinBaru), stdin);
-            pinBaru[strcspn(pinBaru, "\n")] = '\0';
+         case 2: {
+	clearScreen();
+        char pinBaru[7];
+        printf("Masukkan PIN baru (maksimal 6 karakter): ");
+        fgets(pinBaru, sizeof(pinBaru), stdin);
+        pinBaru[strcspn(pinBaru, "\n")] = '\0';
 
-            if (isValidPin(pinBaru)) {
-                strcpy(nasabah->pin, pinBaru);
-                printf("PIN berhasil diubah.\n");
-            } else {
-                printf("PIN tidak valid! Harus berupa angka dan maksimal 6 karakter.\n");
+        if (isValidPin(pinBaru)) {
+            strcpy(nasabah->pin, pinBaru);
+
+            // --- Memperbarui data di file ---
+            FILE *fp = fopen("data_nasabah.txt", "r");
+            FILE *tempFile = fopen("temp_data_nasabah.txt", "w");
+            if (fp == NULL || tempFile == NULL) {
+                perror("Gagal membuka file data nasabah");
+                return;
             }
-            break;
+
+            Nasabah tempNasabah;
+            while (fscanf(fp, "%[^;];%[^;];%[^;];%[^;];%d\n", 
+                          tempNasabah.no_rekening, tempNasabah.pin, tempNasabah.nama, 
+                          tempNasabah.email, &tempNasabah.saldo) == 5) {
+                if (strcmp(tempNasabah.no_rekening, nasabah->no_rekening) == 0) {
+                    fprintf(tempFile, "%s;%s;%s;%s;%d\n", 
+                            nasabah->no_rekening, nasabah->pin, nasabah->nama, 
+                            nasabah->email, nasabah->saldo);
+                } else {
+                    fprintf(tempFile, "%s;%s;%s;%s;%d\n", 
+                            tempNasabah.no_rekening, tempNasabah.pin, tempNasabah.nama, 
+                            tempNasabah.email, tempNasabah.saldo);
+                }
+            }
+
+            fclose(fp);
+            fclose(tempFile);
+
+            remove("data_nasabah.txt");
+            rename("temp_data_nasabah.txt", "data_nasabah.txt");
+
+            printf("PIN berhasil diubah.\n");
+            
+        } else {
+            printf("PIN tidak valid! Harus berupa angka dan maksimal 6 karakter.\n");
         }
+        break;
+    }
 
         default:
             printf("Pilihan tidak valid.\n");
     }
 }
-
 int verifikasiEmail(const char *email, const char *verifikasiEmail) {
     return strcmp(email, verifikasiEmail) == 0;
 }
