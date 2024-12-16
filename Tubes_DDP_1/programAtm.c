@@ -195,40 +195,48 @@ int loginNasabah() {
     printf("             * Login Nasabah *\n");
     printSeparator();
 
-    while (tries < 3) {
+    while (!found) {
+        // Input no rekening
+        printf("Masukkan No Rekening: ");
+        fgets(noRekening, sizeof(noRekening), stdin);
+        noRekening[strcspn(noRekening, "\n")] = '\0';
+        clearInputBuffer();
+
         file = fopen("data_nasabah.txt", "r");
         if (file == NULL) {
             printf("Error: Gagal membuka file.\n");
             return 0;
         }
 
-        // Input data login
-        printf("Masukkan No Rekening: ");
-        fgets(noRekening, sizeof(noRekening), stdin);
-        noRekening[strcspn(noRekening, "\n")] = '\0';
-        clearInputBuffer();
-
-        printf("Masukkan PIN: ");
-        fgets(pin, sizeof(pin), stdin);
-        pin[strcspn(pin, "\n")] = '\0';
-
-        // Cek data di file (sesuaikan dengan format baru)
+        // Cari data nasabah berdasarkan nomor rekening
+        found = 0; // Reset flag
         while (fscanf(file, "%[^;];%[^;];%[^;];%[^;];%d\n", 
                       nasabah.no_rekening, nasabah.pin, nasabah.nama, nasabah.email, &nasabah.saldo) == 5) {
-            // Cocokkan data login
-            if (strcmp(noRekening, nasabah.no_rekening) == 0 && strcmp(pin, nasabah.pin) == 0) {
+            if (strcmp(noRekening, nasabah.no_rekening) == 0) {
                 found = 1;
                 break;
             }
         }
-
         fclose(file);
 
-        if (found) {
+        if (!found) {
+            printf("Error: No Rekening tidak ditemukan. Silakan coba lagi.\n\n");
+        }
+    }
+
+    while (tries < 3) {
+        // Input PIN
+        printf("Masukkan PIN: ");
+        fgets(pin, sizeof(pin), stdin);
+        pin[strcspn(pin, "\n")] = '\0';
+        clearInputBuffer();
+
+        // Cek PIN
+        if (strcmp(pin, nasabah.pin) == 0) {
+            // Jika PIN benar
             clearScreen();
             printSeparator();
             printf("             * Login Berhasil *\n");
-            printSeparator();
             printSeparator();
             printf("Ketik 1 untuk masuk ke Menu utama.\n");
             printf("Ketik 2 untuk keluar dari program.\n");
@@ -239,35 +247,35 @@ int loginNasabah() {
             if (pilihan == 1) {
                 clearScreen();
                 menuUtama(&nasabah); 
-            } else if (pilihan == 2) {
-                printf("Terima kasih telah menggunakan sistem kami.\n");
-                exit(0);
             } else {
-                printf("Pilihan tidak valid. Program akan keluar.\n");
+                printf("Terima kasih telah menggunakan sistem kami.\n");
                 exit(0);
             }
             return 1;
         } else {
+            // Jika PIN salah
             tries++;
-            printf("Error: No Rekening atau PIN salah! (%d/3)\n", tries);
+            printf("Error: PIN salah! (%d/3)\n", tries);
         }
+    }
 
-        if (tries == 3) {
-            printf("\nLogin gagal 3 kali. Silakan verifikasi dengan email.\n");
+    // Jika gagal 3 kali, verifikasi email
+    printf("\nLogin gagal 3 kali. Silakan verifikasi dengan email.\n");
 
-            char inputEmail[100];
-            printf("Masukkan Email untuk Verifikasi: ");
-            fgets(inputEmail, sizeof(inputEmail), stdin);
-            inputEmail[strcspn(inputEmail, "\n")] = '\0';
+    char inputEmail[100];
+    printf("Masukkan Email untuk Verifikasi: ");
+    fgets(inputEmail, sizeof(inputEmail), stdin);
+    inputEmail[strcspn(inputEmail, "\n")] = '\0';
+    clearInputBuffer();
 
-            if (strcmp(inputEmail, nasabah.email) == 0) {
-                printf("Verifikasi berhasil! Anda dapat mencoba login kembali.\n");
-                tries = 0; // Reset percobaan
-            } else {
-                printf("Error: Email tidak cocok. Program akan keluar.\n");
-                exit(0);
-            }
-        }
+    // Verifikasi email
+    if (strcmp(inputEmail, nasabah.email) == 0) {
+        printf("Verifikasi berhasil! Anda akan diarahkan untuk mengubah PIN.\n");
+        // Panggil pengaturan akun langsung ke opsi ubah PIN
+        pengaturanAkun(&nasabah);
+    } else {
+        printf("Error: Email tidak cocok. Program akan keluar.\n");
+        exit(0);
     }
 
     return 0;
